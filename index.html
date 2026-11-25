@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>かずのセンス・パズル100</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap');
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif;
+      background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      overscroll-behavior: none;
+    }
+
+    /* アニメーション */
+    @keyframes popIn {
+      0% { transform: scale(0.86); opacity: 0; }
+      70% { transform: scale(1.03); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shake 0.35s ease-in-out;
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-float {
+      animation: floatSlow 2.4s ease-in-out infinite;
+    }
+
+    /* 3x3 魔方陣グリッド */
+    .magic-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 52px);
+      gap: 6px;
+      justify-content: center;
+      margin: 4px auto;
+    }
+    .magic-cell {
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      font-weight: 800;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      color: #1e293b;
+      box-shadow: 0 2px 0 #cbd5e1;
+    }
+    .magic-cell.target {
+      background: #fef08a;
+      border-color: #eab308;
+      color: #b45309;
+      box-shadow: 0 2px 0 #eab308;
+    }
+    .magic-cell.blank {
+      background: #f1f5f9;
+      border: 2px dashed #94a3b8;
+      color: #64748b;
+      box-shadow: none;
+    }
+    .magic-cell.empty {
+      visibility: hidden;
+      border: none;
+      box-shadow: none;
+    }
+
+    /* ボタンの押し心地 */
+    .num-btn {
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      box-shadow: 0 4px 0 #cbd5e1;
+    }
+    .num-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #cbd5e1;
+    }
+    .action-btn {
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .action-btn:active {
+      transform: translateY(3px);
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- 紙吹雪用Canvas -->
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 hidden"></canvas>
+
+  <!-- ==================== ホーム画面 ==================== -->
+  <div id="screen-home" class="flex-1 flex flex-col max-w-3xl w-full mx-auto px-3 py-4 sm:px-5">
+    <!-- ヘッダー -->
+    <header class="bg-white/95 backdrop-blur rounded-3xl p-4 shadow-sm border-2 border-sky-200 mb-5">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-extrabold text-sky-600 tracking-tight flex items-center gap-2">
+            <span>🧩</span> かずのセンス・パズル100
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-500 font-bold mt-0.5">
+            ★1（にゅうもん）から ★5（マスター）まで ぜんぶで100もん！
+          </p>
+        </div>
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <button onclick="openCollectionModal()" class="flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-extrabold px-3 py-2 rounded-2xl text-sm border-2 border-amber-300 transition">
+            <span>🏆</span>
+            <span class="hidden sm:inline">ずかん</span>
+            <span id="home-badge-count" class="bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full">0/20</span>
+          </button>
+          <button id="btn-sound-home" onclick="toggleSound()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold p-2.5 rounded-2xl border-2 border-slate-200 transition" aria-label="おとのきりかえ">
+            🔊
+          </button>
+          <button onclick="openSettingsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold p-2.5 rounded-2xl border-2 border-slate-200 transition" aria-label="せってい">
+            ⚙️
+          </button>
+        </div>
+      </div>
+
+      <!-- 総クリア問題数プログレスバー -->
+      <div class="mt-3.5 pt-3 border-t border-slate-100">
+        <div class="flex items-center justify-between text-xs font-extrabold mb-1.5">
+          <span class="text-sky-700">ぜんたいの クリアもんだいすう</span>
+          <span id="home-progress-text" class="text-emerald-600 text-sm">0 / 100 もん</span>
+        </div>
+        <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200 p-0.5">
+          <div id="home-progress-bar" class="h-full bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 5段階の難易度グループ別ステージ一覧 -->
+    <main id="stage-tiers-container" class="flex-1 space-y-5 pb-8">
+      <!-- JSで★1〜★5のグループと20ステージを生成 -->
+    </main>
+  </div>
+
+  <!-- ==================== クイズプレイ画面 ==================== -->
+  <div id="screen-play" class="hidden flex-1 flex flex-col max-w-xl w-full mx-auto px-3 py-3 sm:py-4 h-screen max-h-screen overflow-hidden">
+    <!-- 上部ステータスバー -->
+    <div class="flex items-center justify-between gap-2 mb-2 shrink-0">
+      <button onclick="goHome()" class="bg-white hover:bg-slate-50 text-slate-600 font-extrabold px-3 py-1.5 rounded-2xl border-2 border-slate-200 text-sm shadow-sm">
+        ◀ もどる
+      </button>
+      <div class="flex-1 mx-1">
+        <div class="flex justify-between items-center text-xs font-extrabold text-slate-600 mb-1 px-1">
+          <span id="play-stage-label" class="truncate">ステージ 1 ★☆☆☆☆</span>
+          <span id="play-q-count" class="whitespace-nowrap ml-2">1 / 5 もん</span>
+        </div>
+        <div class="h-3 bg-white rounded-full overflow-hidden border-2 border-sky-200">
+          <div id="play-progress-bar" class="h-full bg-sky-400 transition-all duration-300" style="width: 20%"></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="bg-white px-2.5 py-1.5 rounded-2xl border-2 border-slate-200 text-xs sm:text-sm font-extrabold text-slate-700 tabular-nums">
+          ⏱ <span id="play-timer">00:00</span>
+        </div>
+        <button id="btn-sound-play" onclick="toggleSound()" class="bg-white p-1.5 rounded-2xl border-2 border-slate-200 text-sm" aria-label="おと">🔊</button>
+      </div>
+    </div>
+
+    <!-- 問題カード -->
+    <div class="flex-1 flex flex-col bg-white rounded-3xl shadow-md border-2 border-sky-100 p-4 overflow-y-auto no-scrollbar">
+      <!-- ジャンル＆問題番号＆ヒント -->
+      <div class="flex items-center justify-between gap-2 mb-2 shrink-0">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span id="q-number-badge" class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">Q.1</span>
+          <span id="q-category" class="inline-block text-xs font-extrabold px-3 py-1 rounded-full bg-sky-100 text-sky-700">
+            かずのかたまり
+          </span>
+        </div>
+        <button id="btn-hint" onclick="showHint()" class="text-xs font-extrabold px-3 py-1.5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 transition shrink-0">
+          💡 ヒント
+        </button>
+      </div>
+
+      <!-- 問題文 -->
+      <div id="q-text" class="text-base sm:text-lg font-extrabold text-slate-800 leading-relaxed mb-2">
+        問題文
+      </div>
+
+      <!-- ビジュアル補助エリア -->
+      <div id="q-visual" class="my-1.5 flex justify-center items-center w-full"></div>
+
+      <!-- ヒント表示ボックス -->
+      <div id="hint-box" class="hidden mt-2 bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 text-sm font-bold text-amber-900 animate-pop">
+        <span class="font-extrabold text-amber-600">💡 ヒント：</span>
+        <span id="hint-text"></span>
+      </div>
+
+      <!-- 不正解メッセージ -->
+      <div id="wrong-msg" class="hidden mt-2 bg-rose-50 border-2 border-rose-200 rounded-2xl p-2.5 text-center text-sm font-extrabold text-rose-600">
+        おしい！ もういちど かんがえてみよう！
+      </div>
+
+      <!-- 正解＆解説パネル -->
+      <div id="correct-panel" class="hidden mt-3 bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-3.5 animate-pop">
+        <div class="flex items-center gap-2 text-emerald-700 font-extrabold text-lg mb-1">
+          <span>⭕ せいかい！</span>
+          <span id="correct-answer-badge" class="bg-emerald-500 text-white text-sm px-2.5 py-0.5 rounded-full"></span>
+        </div>
+        <p id="explanation-text" class="text-sm font-bold text-emerald-900 leading-relaxed mb-3"></p>
+        <button id="btn-next-q" onclick="nextQuestion()" class="action-btn w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg py-3 rounded-2xl shadow-[0_4px_0_#059669]">
+          つぎの もんだいへ ▶
+        </button>
+      </div>
+
+      <!-- 回答入力エリア -->
+      <div id="input-area" class="mt-auto pt-3 shrink-0">
+        <!-- 数字テンキーモード -->
+        <div id="mode-number" class="hidden">
+          <div class="flex items-center justify-center gap-2 mb-2.5">
+            <span class="text-sm font-extrabold text-slate-500">こたえ：</span>
+            <div id="num-display" class="min-w-[130px] h-12 px-4 bg-sky-50 border-2 border-sky-300 rounded-2xl flex items-center justify-center text-2xl font-extrabold text-sky-800 tracking-wider">
+              <span class="text-slate-300">？</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-5 gap-2 mb-2">
+            <button onclick="pressNum('1')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">1</button>
+            <button onclick="pressNum('2')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">2</button>
+            <button onclick="pressNum('3')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">3</button>
+            <button onclick="pressNum('4')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">4</button>
+            <button onclick="pressNum('5')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">5</button>
+            <button onclick="pressNum('6')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">6</button>
+            <button onclick="pressNum('7')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">7</button>
+            <button onclick="pressNum('8')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">8</button>
+            <button onclick="pressNum('9')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">9</button>
+            <button onclick="pressNum('0')" class="num-btn bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 rounded-2xl py-2.5 text-xl font-extrabold text-slate-700">0</button>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="clearNum()" class="action-btn bg-slate-200 hover:bg-slate-300 text-slate-700 font-extrabold py-3 rounded-2xl shadow-[0_4px_0_#94a3b8] text-base">
+              けす
+            </button>
+            <button onclick="submitNumber()" class="action-btn col-span-2 bg-sky-500 hover:bg-sky-600 text-white font-extrabold py-3 rounded-2xl shadow-[0_4px_0_#0284c7] text-lg">
+              こたえる！
+            </button>
+          </div>
+        </div>
+
+        <!-- 選択ボタンモード -->
+        <div id="mode-choice" class="hidden grid grid-cols-2 gap-2.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ステージクリア画面 ==================== -->
+  <div id="screen-clear" class="hidden flex-1 flex flex-col items-center justify-center max-w-md w-full mx-auto px-4 py-6">
+    <div class="bg-white rounded-3xl shadow-xl border-4 border-amber-300 p-6 w-full text-center animate-pop">
+      <div id="clear-tier-label" class="text-amber-500 font-extrabold text-xs tracking-widest mb-1">STAGE CLEAR!</div>
+      <h2 id="clear-title" class="text-2xl sm:text-3xl font-extrabold text-slate-800 mb-3">ステージ 1 クリア！</h2>
+
+      <!-- タイム -->
+      <div class="inline-flex items-center gap-2 bg-sky-50 border-2 border-sky-200 rounded-2xl px-4 py-2 mb-4">
+        <span class="text-sm font-bold text-slate-600">タイム：</span>
+        <span id="clear-time" class="text-xl font-extrabold text-sky-600 tabular-nums">00:45</span>
+        <span id="clear-best-badge" class="hidden bg-rose-500 text-white text-xs font-extrabold px-2 py-0.5 rounded-full">しんきろく！</span>
+      </div>
+
+      <!-- ごほうびバッジ -->
+      <div class="bg-gradient-to-b from-amber-50 to-orange-50 border-2 border-amber-200 rounded-3xl p-4 mb-5">
+        <div class="text-xs font-extrabold text-amber-700 mb-2">✨ ごほうび バッジを ゲット！ ✨</div>
+        <div id="clear-reward-icon" class="text-6xl mb-2 animate-float">🐣</div>
+        <div id="clear-reward-name" class="text-lg font-extrabold text-slate-800">ひよこマスター</div>
+        <div id="clear-reward-desc" class="text-xs font-bold text-slate-500 mt-1">さいしょの いっぽを クリア！</div>
+      </div>
+
+      <!-- アクションボタン -->
+      <div class="flex flex-col gap-2.5">
+        <button id="btn-next-stage" onclick="startNextStage()" class="action-btn w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg py-3.5 rounded-2xl shadow-[0_4px_0_#059669]">
+          つぎの ステージへ ▶
+        </button>
+        <button onclick="goHome()" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-base py-3 rounded-2xl shadow-[0_4px_0_#cbd5e1]">
+          トップに もどる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ごほうび図鑑モーダル ==================== -->
+  <div id="modal-collection" class="hidden fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-pop">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-amber-50">
+        <h3 class="text-lg font-extrabold text-amber-800 flex items-center gap-2">
+          <span>🏆</span> ごほうび ずかん (<span id="modal-badge-count">0/20</span>)
+        </h3>
+        <button onclick="closeCollectionModal()" class="bg-white hover:bg-slate-100 text-slate-600 font-extrabold w-9 h-9 rounded-full border border-slate-200">✕</button>
+      </div>
+      <div id="collection-grid" class="p-4 overflow-y-auto grid grid-cols-4 gap-2.5"></div>
+      <div id="collection-detail" class="p-3 bg-slate-50 border-t border-slate-200 text-center min-h-[68px] flex flex-col justify-center">
+        <p class="text-xs font-bold text-slate-500">ゲットした バッジを タップすると せつめいが みられるよ！</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 設定モーダル ==================== -->
+  <div id="modal-settings" class="hidden fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-extrabold text-slate-800">⚙️ せってい</h3>
+        <button onclick="closeSettingsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-extrabold w-8 h-8 rounded-full">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200">
+          <span class="font-bold text-slate-700 text-sm">こうかおん（おと）</span>
+          <button id="btn-sound-modal" onclick="toggleSound()" class="bg-sky-500 text-white font-extrabold px-4 py-1.5 rounded-xl text-sm">ON</button>
+        </div>
+
+        <div class="bg-rose-50 p-3 rounded-2xl border border-rose-200">
+          <p class="text-xs font-bold text-rose-700 mb-2">きろく（クリア・ベストタイム・ずかん）を ぜんぶ けして さいしょから やりなおします。</p>
+          <div id="reset-step-1">
+            <button onclick="showResetConfirm()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold py-2 rounded-xl text-sm">
+              きろくを リセットする
+            </button>
+          </div>
+          <div id="reset-step-2" class="hidden space-y-2">
+            <p class="text-xs font-extrabold text-rose-800 text-center">ほんとうに ぜんぶ けしますか？</p>
+            <div class="flex gap-2">
+              <button onclick="cancelReset()" class="flex-1 bg-white border border-slate-300 text-slate-700 font-bold py-2 rounded-xl text-sm">やめる</button>
+              <button onclick="executeReset()" class="flex-1 bg-rose-600 text-white font-extrabold py-2 rounded-xl text-sm">はい、けす</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. ビジュアル補助（魔方陣・数列・式・SVG図解）生成ヘルパー
+    // =========================================================================
+    function makeFormula(html) {
+      return `<div class="bg-sky-50 border-2 border-sky-200 rounded-2xl px-4 py-2.5 text-base sm:text-lg font-extrabold text-sky-900 tracking-wide text-center w-full">${html}</div>`;
+    }
+
+    function makeSeq(items) {
+      return `<div class="flex flex-wrap justify-center items-center gap-1.5 my-1">` + items.map(item => {
+        const isTarget = item === '？' || item === '□';
+        return `<span class="px-3 py-1.5 rounded-xl font-extrabold text-base sm:text-lg border-2 ${
+          isTarget
+            ? 'bg-amber-100 border-amber-400 text-amber-800 shadow-sm'
+            : 'bg-slate-50 border-slate-200 text-slate-700'
+        }">${item}</span>`;
+      }).join('') + `</div>`;
+    }
+
+    function makeMagic3x3(cells) {
+      return `<div class="magic-grid">` + cells.map(c => {
+        if (c === '？') return `<div class="magic-cell target">？</div>`;
+        if (c === '□') return `<div class="magic-cell blank">□</div>`;
+        if (c === '') return `<div class="magic-cell empty"></div>`;
+        return `<div class="magic-cell">${c}</div>`;
+      }).join('') + `</div>`;
+    }
+
+    // 十字型魔方陣（3x3グリッドの四隅を非表示）
+    function makeCrossMagic(top, left, center, right, bottom) {
+      return makeMagic3x3(['', top, '', left, center, right, '', bottom, '']);
+    }
+
+    // 三角形型魔方陣（SVG）
+    function makeTriangleMagicSVG(top, midL, midR, botL, botM, botR) {
+      const node = (cx, cy, val) => {
+        const isTarget = val === '？';
+        const isBlank = val === '□';
+        const fill = isTarget ? '#fef08a' : isBlank ? '#f1f5f9' : '#ffffff';
+        const stroke = isTarget ? '#eab308' : isBlank ? '#94a3b8' : '#38bdf8';
+        const dash = isBlank ? 'stroke-dasharray="4 3"' : '';
+        const textFill = isTarget ? '#b45309' : isBlank ? '#64748b' : '#1e293b';
+        return `
+          <circle cx="${cx}" cy="${cy}" r="18" fill="${fill}" stroke="${stroke}" stroke-width="2.5" ${dash}/>
+          <text x="${cx}" y="${cy + 6}" text-anchor="middle" font-size="17" font-weight="800" fill="${textFill}">${val}</text>
+        `;
+      };
+      return `
+        <svg viewBox="0 0 220 165" class="w-48 h-36 mx-auto">
+          <polygon points="110,24 34,142 186,142" fill="#f0f9ff" stroke="#7dd3fc" stroke-width="3" stroke-linejoin="round"/>
+          ${node(110, 24, top)}
+          ${node(72, 83, midL)}
+          ${node(148, 83, midR)}
+          ${node(34, 142, botL)}
+          ${node(110, 142, botM)}
+          ${node(186, 142, botR)}
+        </svg>
+      `;
+    }
+
+    // アナログ時計SVG
+    function makeClockSVG(hour, minute) {
+      const hourAngle = ((hour % 12) + minute / 60) * 30;
+      const minAngle = minute * 6;
+      let ticks = '';
+      for (let i = 1; i <= 12; i++) {
+        const rad = (i * 30 - 90) * Math.PI / 180;
+        const x = 60 + 42 * Math.cos(rad);
+        const y = 60 + 42 * Math.sin(rad) + 4;
+        ticks += `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="10" font-weight="800" fill="#475569">${i}</text>`;
+      }
+      return `
+        <svg viewBox="0 0 120 120" class="w-28 h-28 mx-auto">
+          <circle cx="60" cy="60" r="54" fill="#ffffff" stroke="#38bdf8" stroke-width="4"/>
+          ${ticks}
+          <line x1="60" y1="60" x2="60" y2="33" stroke="#1e293b" stroke-width="4" stroke-linecap="round" transform="rotate(${hourAngle} 60 60)"/>
+          <line x1="60" y1="60" x2="60" y2="21" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" transform="rotate(${minAngle} 60 60)"/>
+          <circle cx="60" cy="60" r="3.5" fill="#f43f5e"/>
+        </svg>
+      `;
+    }
+
+    // 植木算の道SVG
+    function makeRoadSVG(totalLabel, intervalLabel) {
+      return `
+        <svg viewBox="0 0 280 76" class="w-full max-w-[280px] h-18 mx-auto">
+          <line x1="24" y1="54" x2="256" y2="54" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+          <text x="24" y="42" text-anchor="middle" font-size="22">🌲</text>
+          <text x="70" y="42" text-anchor="middle" font-size="22">🌲</text>
+          <text x="140" y="42" text-anchor="middle" font-size="16" font-weight="800" fill="#64748b">・・・</text>
+          <text x="256" y="42" text-anchor="middle" font-size="22">🌲</text>
+          <text x="47" y="69" text-anchor="middle" font-size="11" font-weight="800" fill="#0284c7">${intervalLabel}</text>
+          <text x="140" y="16" text-anchor="middle" font-size="12" font-weight="800" fill="#334155">ぜんぶで ${totalLabel}</text>
+        </svg>
+      `;
+    }
+
+    // 池の周りの植木算SVG
+    function makePondSVG() {
+      const trees = [];
+      for (let i = 0; i < 6; i++) {
+        const rad = (i * 60 - 90) * Math.PI / 180;
+        const x = 90 + 52 * Math.cos(rad);
+        const y = 62 + 38 * Math.sin(rad) + 7;
+        trees.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="18">🌲</text>`);
+      }
+      return `
+        <svg viewBox="0 0 180 124" class="w-44 h-28 mx-auto">
+          <ellipse cx="90" cy="62" rx="48" ry="34" fill="#bae6fd" stroke="#38bdf8" stroke-width="3"/>
+          <text x="90" y="66" text-anchor="middle" font-size="12" font-weight="800" fill="#0369a1">いけ</text>
+          ${trees.join('')}
+        </svg>
+      `;
+    }
+
+    // 2x2の四角形分割SVG
+    function makeGrid2x2SVG() {
+      return `
+        <svg viewBox="0 0 110 110" class="w-24 h-24 mx-auto">
+          <rect x="10" y="10" width="90" height="90" fill="#f0f9ff" stroke="#0284c7" stroke-width="3" rx="4"/>
+          <line x1="55" y1="10" x2="55" y2="100" stroke="#0284c7" stroke-width="2.5"/>
+          <line x1="10" y1="55" x2="100" y2="55" stroke="#0284c7" stroke-width="2.5"/>
+        </svg>
+      `;
+    }
+
+    // サイコロ展開図SVG
+    function makeDiceNetSVG() {
+      const sq = (x, y, val, isTarget = false) => `
+        <rect x="${x}" y="${y}" width="34" height="34" rx="5" fill="${isTarget ? '#fef08a' : '#ffffff'}" stroke="${isTarget ? '#eab308' : '#475569'}" stroke-width="2.2"/>
+        <text x="${x + 17}" y="${y + 23}" text-anchor="middle" font-size="16" font-weight="800" fill="${isTarget ? '#b45309' : '#1e293b'}">${val}</text>
+      `;
+      return `
+        <svg viewBox="0 0 170 118" class="w-44 h-28 mx-auto">
+          ${sq(48, 6, '2')}
+          ${sq(14, 40, '3')}
+          ${sq(48, 40, '1')}
+          ${sq(82, 40, '4')}
+          ${sq(116, 40, '？', true)}
+          ${sq(48, 74, '5')}
+        </svg>
+      `;
+    }
+
+    // ピラミッド積み木SVG
+    function makePyramidBlocksSVG() {
+      return `
+        <svg viewBox="0 0 210 92" class="w-52 h-22 mx-auto">
+          <rect x="30" y="62" width="150" height="22" rx="4" fill="#bae6fd" stroke="#0284c7" stroke-width="2"/>
+          <text x="105" y="77" text-anchor="middle" font-size="12" font-weight="800" fill="#0369a1">したのだん：3×3（9こ）</text>
+          <rect x="55" y="36" width="100" height="22" rx="4" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+          <text x="105" y="51" text-anchor="middle" font-size="12" font-weight="800" fill="#92400e">まんなか：2×2（4こ）</text>
+          <rect x="82" y="10" width="46" height="22" rx="4" fill="#fbcfe8" stroke="#db2777" stroke-width="2"/>
+          <text x="105" y="25" text-anchor="middle" font-size="12" font-weight="800" fill="#9d174d">うえ：1こ</text>
+        </svg>
+      `;
+    }
+
+    // 円卓座席SVG（Q95）
+    function makeTableSeatSVG() {
+      return `
+        <svg viewBox="0 0 180 120" class="w-44 h-28 mx-auto">
+          <circle cx="90" cy="60" r="30" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
+          <text x="90" y="64" text-anchor="middle" font-size="11" font-weight="800" fill="#b45309">テーブル</text>
+          <circle cx="90" cy="104" r="13" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+          <text x="90" y="109" text-anchor="middle" font-size="13" font-weight="800" fill="#0369a1">A</text>
+          <circle cx="90" cy="16" r="13" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+          <text x="90" y="21" text-anchor="middle" font-size="13" font-weight="800" fill="#334155">C</text>
+          <circle cx="138" cy="60" r="13" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+          <text x="138" y="65" text-anchor="middle" font-size="13" font-weight="800" fill="#334155">B</text>
+          <circle cx="42" cy="60" r="13" fill="#fef08a" stroke="#eab308" stroke-width="2.5"/>
+          <text x="42" y="65" text-anchor="middle" font-size="14" font-weight="800" fill="#b45309">？</text>
+        </svg>
+      `;
+    }
+
+    // 重なり図解SVG（Q99）
+    function makeOverlapSVG() {
+      return `
+        <svg viewBox="0 0 220 76" class="w-56 h-20 mx-auto">
+          <rect x="26" y="16" width="90" height="44" fill="#bae6fd" fill-opacity="0.7" stroke="#0284c7" stroke-width="2" rx="4"/>
+          <rect x="86" y="16" width="90" height="44" fill="#fde68a" fill-opacity="0.7" stroke="#d97706" stroke-width="2" rx="4"/>
+          <text x="56" y="42" text-anchor="middle" font-size="12" font-weight="800" fill="#0369a1">3cm</text>
+          <text x="146" y="42" text-anchor="middle" font-size="12" font-weight="800" fill="#92400e">3cm</text>
+          <text x="101" y="72" text-anchor="middle" font-size="11" font-weight="800" fill="#dc2626">かさなり 1cm</text>
+        </svg>
+      `;
+    }
+
+    // =========================================================================
+    // 2. 難易度帯（★1〜★5）と ごほうび図鑑（20種）
+    // =========================================================================
+    const TIERS = [
+      {
+        tier: 1, stars: '★☆☆☆☆', title: 'にゅうもん', stages: [1, 2, 3, 4],
+        desc: '10のまとまり・くらいどり・かんたんな ぎゃくさん',
+        headerBg: 'bg-sky-500', border: 'border-sky-200', softBg: 'bg-sky-50/70', badge: 'bg-sky-100 text-sky-700'
+      },
+      {
+        tier: 2, stars: '★★☆☆☆', title: 'きそ', stages: [5, 6, 7, 8],
+        desc: 'かずのくふう・うえきざん・2のばいばい・まほうじん',
+        headerBg: 'bg-emerald-500', border: 'border-emerald-200', softBg: 'bg-emerald-50/70', badge: 'bg-emerald-100 text-emerald-700'
+      },
+      {
+        tier: 3, stars: '★★★☆☆', title: 'ちゅうきゅう', stages: [9, 10, 11, 12],
+        desc: 'しょうきょざん・つるかめざん・サイコロ・とけい',
+        headerBg: 'bg-amber-500', border: 'border-amber-200', softBg: 'bg-amber-50/70', badge: 'bg-amber-100 text-amber-800'
+      },
+      {
+        tier: 4, stars: '★★★★☆', title: 'じょうきゅう', stages: [13, 14, 15, 16],
+        desc: 'いけのうえきざん・へんそくまほうじん・フィボナッチ・てんかいず',
+        headerBg: 'bg-orange-500', border: 'border-orange-200', softBg: 'bg-orange-50/70', badge: 'bg-orange-100 text-orange-800'
+      },
+      {
+        tier: 5, stars: '★★★★★', title: 'マスター', stages: [17, 18, 19, 20],
+        desc: 'こうどなかずのくふう・むずかしいまほうじん・ろんりすいり',
+        headerBg: 'bg-purple-600', border: 'border-purple-200', softBg: 'bg-purple-50/70', badge: 'bg-purple-100 text-purple-800'
+      }
+    ];
+
+    function getTierForStage(stageNum) {
+      return TIERS[Math.floor((stageNum - 1) / 4)];
+    }
+
+    const REWARDS = [
+      { id: 1, icon: '🐣', name: 'ひよこマスター', desc: 'さいしょの いっぽを クリア！' },
+      { id: 2, icon: '🐢', name: 'コツコツかめさん', desc: 'じっくり かんがえる ちから！' },
+      { id: 3, icon: '🦊', name: 'ひらめきキツネ', desc: 'きそくや じかんが わかってきた！' },
+      { id: 4, icon: '🐬', name: 'ジャンプイルカ', desc: 'にゅうもん ぜんぶ クリア！すごい！' },
+      { id: 5, icon: '🦉', name: 'ものしりフクロウ', desc: 'まほうじんの せかいへ ようこそ！' },
+      { id: 6, icon: '🦁', name: 'ゆうかんライオン', desc: 'ワナを みぬく めを もっているよ！' },
+      { id: 7, icon: '🐙', name: 'パズルたこさん', desc: 'つるかめざんも とけちゃうぞ！' },
+      { id: 8, icon: '🦄', name: 'まほうユニコーン', desc: 'きそレベル ぜんぶ クリア！' },
+      { id: 9, icon: '🦖', name: 'ティラノサウルス', desc: 'ちゅうきゅうの スタートを とっぱ！' },
+      { id: 10, icon: '🐳', name: 'ビッグクジラ', desc: '50もん（はんぶん）たっせい！おめでとう！' },
+      { id: 11, icon: '🦅', name: 'するどいワシ', desc: 'かずのかたまりが パッと みえる！' },
+      { id: 12, icon: '🐼', name: 'のんびりパンダ', desc: 'ちゅうきゅうレベル ぜんぶ クリア！' },
+      { id: 13, icon: '🦈', name: 'スピードサメ', desc: 'じゅうじまほうじんも クリア！' },
+      { id: 14, icon: '🦋', name: 'きれいなチョウ', desc: 'むずかしい ぎゃくさんや すいりも バッチリ！' },
+      { id: 15, icon: '🚀', name: 'うちゅうロケット', desc: '75もん クリア！うちゅうレベル！' },
+      { id: 16, icon: '🧙', name: 'かずのまほうつかい', desc: 'じょうきゅうレベル ぜんぶ クリア！' },
+      { id: 17, icon: '🐉', name: 'でんせつドラゴン', desc: 'マスターの とびらを ひらいたぞ！' },
+      { id: 18, icon: '💎', name: 'ひかるダイヤ', desc: 'あたまの ひらめきが 宝石みたい！' },
+      { id: 19, icon: '🛸', name: 'みらいのUFO', desc: 'あと 1ステージで ぜんクリだ！' },
+      { id: 20, icon: '👑', name: 'かずの おうさま', desc: '100もん ぜんぶ クリア！さいこうの てんさい！' }
+    ];
+
+    const CATEGORY_STYLES = {
+      'かたまり': { label: '🔢 かずのかたまり', bg: 'bg-sky-100 text-sky-700' },
+      'ワナ':     { label: '🦊 しこうのワナ',   bg: 'bg-orange-100 text-orange-700' },
+      'パズル':   { label: '🧩 すいり・パズル', bg: 'bg-purple-100 text-purple-700' },
+      'きそく':   { label: '✨ きそくせい',     bg: 'bg-emerald-100 text-emerald-700' },
+      'ずけい':   { label: '📐 ずけい・とけい', bg: 'bg-pink-100 text-pink-700' }
+    };
+
+    // =========================================================================
+    // 3. 全100問データ（★1〜★5の難易度カーブ・必須14題すべて収録・重複なし）
+    // =========================================================================
+    const QUESTIONS = [
+      // ==================== ★1 入門：ステージ 1 (Q1〜Q5) ====================
+      {
+        id: 1, category: 'かたまり', // [例1]
+        question: '1000 ＋ 200 ＋ 30 ＋ 4 は いくつ？',
+        visual: makeFormula('1000 ＋ 200 ＋ 30 ＋ 4 ＝ ？'),
+        answerType: 'number', answer: '1234',
+        hint: 'それぞれの くらいの すうじを そのまま ならべてみよう。',
+        explanation: '1000、200、30、4 を あわせると「1234」になるよ！'
+      },
+      {
+        id: 2, category: 'かたまり',
+        question: '8 ＋ 7 ＋ 2 は いくつ？',
+        visual: makeFormula('8 ＋ 7 ＋ 2 ＝ ？'),
+        answerType: 'number', answer: '17',
+        hint: '8 と 2 を さきに たすと「10」に なるよ！',
+        explanation: '8＋2＝10、それに 7 を たして 17！10のまとまりを つくると かんたんだね。'
+      },
+      {
+        id: 3, category: 'ワナ',
+        question: '5にんが よこに 1れつに ならんでいます。となりの ひとと てを つなぐと、てを つないでいる ところは ぜんぶで なんかしょ？',
+        visual: makeFormula('🧑🤝🧑🤝🧑🤝🧑🤝🧑'),
+        answerType: 'number', answer: '4',
+        hint: '5にんの「あいだ」の かずを かぞえてみよう。',
+        explanation: '5にんの あいだは 4かしょ だよ！'
+      },
+      {
+        id: 4, category: 'パズル',
+        question: 'ある かずに「4」を たしたら「10」に なりました。さいしょの かずは いくつ？',
+        visual: makeFormula('□ ＋ 4 ＝ 10'),
+        answerType: 'number', answer: '6',
+        hint: '10 から 4 を ひいてみよう。',
+        explanation: '6 ＋ 4 ＝ 10 だね！ぎゃくから かんがえると すぐわかるよ。'
+      },
+      {
+        id: 5, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['2', '4', '6', '8', '□', '12']),
+        answerType: 'number', answer: '10',
+        hint: 'いくつずつ ふえているかな？',
+        explanation: '2ずつ ふえているから、8 の つぎは 10 だよ！'
+      },
+
+      // ==================== ★1 入門：ステージ 2 (Q6〜Q10) ====================
+      {
+        id: 6, category: 'かたまり',
+        question: '500 ＋ 60 ＋ 9 は いくつ？',
+        visual: makeFormula('500 ＋ 60 ＋ 9 ＝ ？'),
+        answerType: 'number', answer: '569',
+        hint: '100のくらいが5、10のくらいが6、1のくらいが9 だよ。',
+        explanation: 'あわせると 569 に なるよ！'
+      },
+      {
+        id: 7, category: 'ワナ', // [例2]
+        question: 'ながい ウインナーを ほうちょうで「4かい」きると、ぜんぶで なんこに わかれる？',
+        visual: makeFormula('🌭 ✂️ ✂️ ✂️ ✂️（4かい きる）'),
+        answerType: 'number', answer: '5',
+        hint: '1かい きると 2こ、2かい きると 3こに なるよ！',
+        explanation: 'きった かいすうより 1こ おおくなるから、4 ＋ 1 ＝ 5こ だよ！'
+      },
+      {
+        id: 8, category: 'かたまり',
+        question: '10 － 3 ＋ 3 は いくつ？',
+        visual: makeFormula('10 － 3 ＋ 3 ＝ ？'),
+        answerType: 'number', answer: '10',
+        hint: '3 を ひいて、また おなじ 3 を たしているよ！',
+        explanation: 'ひいて おなじ かずを たすと、もとの 10 に もどるよ！'
+      },
+      {
+        id: 9, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['5', '10', '15', '□', '25', '30']),
+        answerType: 'number', answer: '20',
+        hint: '5ずつ ふえているよ。',
+        explanation: '15 に 5 を たして 20 だよ！'
+      },
+      {
+        id: 10, category: 'ずけい',
+        question: 'さんかく（△）1つ と しかく（□）1つ が あります。かど（ちょうてん）は あわせて いくつ？',
+        visual: makeFormula('△ の かど ＋ □ の かど ＝ ？'),
+        answerType: 'number', answer: '7',
+        hint: 'さんかくは 3つ、しかくは 4つ あるよ。',
+        explanation: '3 ＋ 4 ＝ 7つ だよ！'
+      },
+
+      // ==================== ★1 入門：ステージ 3 (Q11〜Q15) ====================
+      {
+        id: 11, category: 'かたまり',
+        question: '9 ＋ 9 ＋ 2 は いくつ？',
+        visual: makeFormula('9 ＋ 9 ＋ 2 ＝ ？'),
+        answerType: 'number', answer: '20',
+        hint: '2 を「1 と 1」に わけて、それぞれの 9 に あげてみよう！',
+        explanation: '10 ＋ 10 ＝ 20 に なるから パッと けいさんできるね！'
+      },
+      {
+        id: 12, category: 'かたまり',
+        question: '100えんだま 1まい、10えんだま 4まい、1えんだま 5まい。ぜんぶで なんえん？',
+        visual: makeFormula('🪙100×1 ＋ 🪙10×4 ＋ 🪙1×5'),
+        answerType: 'number', answer: '145',
+        hint: '100 と 40 と 5 を あわせよう。',
+        explanation: '100 ＋ 40 ＋ 5 ＝ 145えん だよ！'
+      },
+      {
+        id: 13, category: 'パズル',
+        question: 'ある かずから「3」を ひいたら「8」に なりました。さいしょの かずは いくつ？',
+        visual: makeFormula('□ － 3 ＝ 8'),
+        answerType: 'number', answer: '11',
+        hint: '3 を ひく まえに もどすには、8 に 3 を たそう！',
+        explanation: '8 ＋ 3 ＝ 11！ 11 － 3 ＝ 8 で ピッタリだね。'
+      },
+      {
+        id: 14, category: 'きそく', // [例3]
+        question: '「あか・あお・きいろ・あか・あお・きいろ…」と じゅんばんに ならべます。10ばんめは なにいろ？',
+        visual: makeSeq(['🔴', '🔵', '🟡', '🔴', '🔵', '🟡', '…', '10ばんめ']),
+        answerType: 'choice', choices: ['あか', 'あお', 'きいろ'], answer: 'あか',
+        hint: '3こずつの グループだよ。3・6・9ばんめが きいろ！',
+        explanation: '9ばんめが きいろ だから、10ばんめは つぎの「あか」だよ！'
+      },
+      {
+        id: 15, category: 'ずけい',
+        question: 'いま 3じ です。2じかんごは なんじ？',
+        visual: makeClockSVG(3, 0),
+        answerType: 'number', answer: '5',
+        hint: 'みじかい はりを 2つ すすめてみよう。',
+        explanation: '3 ＋ 2 ＝ 5じ だよ！'
+      },
+
+      // ==================== ★1 入門：ステージ 4 (Q16〜Q20) ====================
+      {
+        id: 16, category: 'かたまり',
+        question: '1 ＋ 2 ＋ 3 ＋ 4 ＋ 5 は いくつ？',
+        visual: makeFormula('1 ＋ 2 ＋ 3 ＋ 4 ＋ 5 ＝ ？'),
+        answerType: 'number', answer: '15',
+        hint: '「1と4」「2と3」で 5 が できるよ！',
+        explanation: '5 ＋ 5 ＋ 5 ＝ 15 だよ！'
+      },
+      {
+        id: 17, category: 'かたまり',
+        question: '5000 ＋ 300 ＋ 8 は いくつ？',
+        visual: makeFormula('5000 ＋ 300 ＋ 8 ＝ ？'),
+        answerType: 'number', answer: '5308',
+        hint: '10の くらいが ないから「0」を いれるのを わすれないで！',
+        explanation: '10の くらいが 0 だから 5308 に なるよ！'
+      },
+      {
+        id: 18, category: 'ワナ',
+        question: '1れつに ならんでいます。まえから 3ばんめ、うしろから 4ばんめ です。ぜんぶで なんにん いる？',
+        visual: makeSeq(['●', '●', 'じぶん', '●', '●', '●']),
+        answerType: 'number', answer: '6',
+        hint: '3 ＋ 4 だと、じぶんを 2かい かぞえちゃうよ！',
+        explanation: 'まえに 2にん、じぶん 1にん、うしろに 3にん。ぜんぶで 6にん だよ！'
+      },
+      {
+        id: 19, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['20', '18', '16', '□', '12', '10']),
+        answerType: 'number', answer: '14',
+        hint: '2ずつ へっているよ。',
+        explanation: '16 － 2 ＝ 14 だよ！'
+      },
+      {
+        id: 20, category: 'ずけい',
+        question: 'おりがみを はんぶんに 1かい おって、もう1かい はんぶんに おりました。ひらくと しかくは いくつに わかれる？',
+        visual: makeGrid2x2SVG(),
+        answerType: 'number', answer: '4',
+        hint: '1かい おると 2つ、もう1かい おると その 2ばいに なるよ。',
+        explanation: '2 × 2 ＝ 4つに わかれるよ！'
+      },
+
+      // ==================== ★2 基礎：ステージ 5 (Q21〜Q25) ====================
+      {
+        id: 21, category: 'かたまり',
+        question: '18 ＋ 19 ＋ 2 ＋ 1 は いくつ？',
+        visual: makeFormula('18 ＋ 19 ＋ 2 ＋ 1 ＝ ？'),
+        answerType: 'number', answer: '40',
+        hint: '「18と2」「19と1」を さきに たしてみよう！',
+        explanation: '20 ＋ 20 ＝ 40！きれいな かずを つくると かんたんだね。'
+      },
+      {
+        id: 22, category: 'ワナ', // [例4]
+        question: '1かいぶん あがるのに 10びょう かかる ビルは 5かいだて です。1かいから 5かいに あがるのに なんびょう かかりますか？',
+        visual: makeFormula('🏢 1かい → 2 → 3 → 4 → 5かい'),
+        answerType: 'number', answer: '40',
+        hint: '1かいから 5かいまでは、なんかいぶん あがるかな？',
+        explanation: '1かいから 5かいまでは「4かいぶん」あがるから、10びょう×4＝40びょう だよ！'
+      },
+      {
+        id: 23, category: 'パズル', // [例14-1] 3x3魔方陣(空欄1)
+        question: 'たて・よこ・ななめ、どの れつも たすと「15」になる まほうじん。？ は いくつ？',
+        visual: makeMagic3x3(['8', '1', '6', '3', '5', '7', '4', '？', '2']),
+        answerType: 'number', answer: '9',
+        hint: 'したの よこ（4 ＋ ？ ＋ 2 ＝ 15）を みてみよう。',
+        explanation: '4 ＋ 2 ＝ 6 だから、15 に するには 9 が はいるよ！'
+      },
+      {
+        id: 24, category: 'ずけい',
+        question: 'サイコロ（1〜6）の むかいあう めんを たすと いつも「7」になります。2 の うらがわは いくつ？',
+        visual: makeFormula('🎲 2 の うらがわ ＝ ？'),
+        answerType: 'number', answer: '5',
+        hint: '2 ＋ ？ ＝ 7 を かんがえよう。',
+        explanation: '2 ＋ 5 ＝ 7 だから、うらがわは 5 だよ！'
+      },
+      {
+        id: 25, category: 'ずけい',
+        question: 'いま 10じ です。3じかんごは なんじ？',
+        visual: makeClockSVG(10, 0),
+        answerType: 'number', answer: '1',
+        hint: '12じ の つぎは 1じ に もどるよ！',
+        explanation: '10 → 11 → 12 → 1じ だよ！'
+      },
+
+      // ==================== ★2 基礎：ステージ 6 (Q26〜Q30) ====================
+      {
+        id: 26, category: 'かたまり', // [例5]
+        question: '2 を なんかい たしたら 100 に なる？',
+        visual: makeFormula('2 ＋ 2 ＋ 2 ＋ … ＝ 100'),
+        answerType: 'number', answer: '50',
+        hint: '2 を 5かい たすと 10。100 は 10 が 10こ あるよ。',
+        explanation: '100 の はんぶんは 50！だから 2 を 50かい たすと 100 に なるよ。'
+      },
+      {
+        id: 27, category: 'ワナ',
+        question: 'お兄さんは 9さい、おとうとは 6さい です。5ねんご、ふたりの ねんれいの ちがい（さ）は なんさい？',
+        visual: makeFormula('兄 9さい ／ 弟 6さい → 5ねんごは？'),
+        answerType: 'number', answer: '3',
+        hint: 'ふたりとも おなじように 5さい としを とるよ。',
+        explanation: 'なんねん たっても ねんれいの ちがいは かわらない！9 － 6 ＝ 3さい だよ。'
+      },
+      {
+        id: 28, category: 'かたまり',
+        question: '25 ＋ 25 ＋ 25 ＋ 25 は いくつ？',
+        visual: makeFormula('25 ＋ 25 ＋ 25 ＋ 25 ＝ ？'),
+        answerType: 'number', answer: '100',
+        hint: '25 ＋ 25 ＝ 50 だよ。50 が 2つ あるね！',
+        explanation: '50 ＋ 50 ＝ 100！25が 4つで 100 は おぼえておくと べんりだよ。'
+      },
+      {
+        id: 29, category: 'きそく',
+        question: '「グー・チョキ・パー・グー・チョキ・パー…」と ならべます。14ばんめは なに？',
+        visual: makeSeq(['✊', '✌️', '🖐️', '✊', '✌️', '🖐️', '…']),
+        answerType: 'choice', choices: ['グー', 'チョキ', 'パー'], answer: 'チョキ',
+        hint: '3こずつ くりかえすよ。12ばんめが パー だね！',
+        explanation: '12ばんめが パー、13ばんめが グー、14ばんめは「チョキ」だよ！'
+      },
+      {
+        id: 30, category: 'ワナ',
+        question: 'ほんを「5ページ」から「10ページ」まで よみました。ぜんぶで なんページ よんだ？',
+        visual: makeSeq(['5', '6', '7', '8', '9', '10']),
+        answerType: 'number', answer: '6',
+        hint: '10 － 5 ＝ 5 だと、5ページめを わすれちゃうよ！',
+        explanation: '5, 6, 7, 8, 9, 10 の ぜんぶで 6ページ よんだよ！'
+      },
+
+      // ==================== ★2 基礎：ステージ 7 (Q31〜Q35) ====================
+      {
+        id: 31, category: 'かたまり', // [例6]
+        question: '1から 10まで ぜんぶ たすと、いくつに なる？',
+        visual: makeFormula('1＋2＋3＋4＋5＋6＋7＋8＋9＋10'),
+        answerType: 'number', answer: '55',
+        hint: '「1と9」「2と8」のように、10になる ペアを つくってみよう！',
+        explanation: '10のペアが 4くみ（40）＋ 10 ＋ あまりの 5 ＝ 55 だよ！'
+      },
+      {
+        id: 32, category: 'ワナ', // [例7]
+        question: '10m の みちに、2m おきに きを うえます。はじから はじまで、きは ぜんぶで なんぼん ひつよう？',
+        visual: makeRoadSVG('10m', '2m'),
+        answerType: 'number', answer: '6',
+        hint: '0m（スタート地点）にも 1ぽん うえるのを わすれないで！',
+        explanation: '2mの あいだが 5つ あるから、きは 5 ＋ 1 ＝ 6ぽん ひつようだよ！'
+      },
+      {
+        id: 33, category: 'パズル', // [例8]
+        question: 'いぬと ニワトリが あわせて「4ひき」います。あしの かずを ぜんぶ かぞえたら「10ぽん」でした。いぬは なんびき？',
+        visual: makeFormula('🐶(4ほん) ＋ 🐔(2ほん) ＝ 4ひき・10ぽん'),
+        answerType: 'number', answer: '1',
+        hint: 'もし ぜんぶ ニワトリ(4わ)なら あしは 8ほん。あと 2ほん たりないね！',
+        explanation: 'いぬ1ぴき(4ほん)＋ニワトリ3わ(6ほん)＝10ぽん だよ！'
+      },
+      {
+        id: 34, category: 'きそく', // [例9]
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['1', '2', '4', '8', '16', '□', '64']),
+        answerType: 'number', answer: '32',
+        hint: 'まえの かずを 2ばい（おなじ かずを たす）しているよ！',
+        explanation: '16 ＋ 16 ＝ 32 だよ！ばいばいに ふえる ルールだね。'
+      },
+      {
+        id: 35, category: 'パズル', // [例14-2] 3x3魔方陣(空欄1・中央)
+        question: 'たて・よこ・ななめ、たすと「15」になる まほうじん。まんなかの ？ は いくつ？',
+        visual: makeMagic3x3(['2', '9', '4', '7', '？', '3', '6', '1', '8']),
+        answerType: 'number', answer: '5',
+        hint: 'まんなかの よこ（7 ＋ ？ ＋ 3 ＝ 15）を みてみよう。',
+        explanation: '7 ＋ 3 ＝ 10 だから、まんなかは 5 だよ！（和が15の3×3まほうじんの まんなかは いつも5！）'
+      },
+
+      // ==================== ★2 基礎：ステージ 8 (Q36〜Q40) ====================
+      {
+        id: 36, category: 'かたまり',
+        question: '50 － 19 － 1 は いくつ？',
+        visual: makeFormula('50 － 19 － 1 ＝ ？'),
+        answerType: 'number', answer: '30',
+        hint: '19 と 1 を あわせて「20」ひくのと おなじだよ！',
+        explanation: '50 － 20 ＝ 30 だよ！'
+      },
+      {
+        id: 37, category: 'ワナ',
+        question: '100m きょうそうで、いま 3いの ひとを ぬかしました。あなたは いま なんい？',
+        visual: makeFormula('🏃 3いの ひとを ぬかした！'),
+        answerType: 'number', answer: '3',
+        hint: '3いの ひとの ばしょに あなたが はいるよ！',
+        explanation: '3いの ひとを ぬかしたら、あなたが 3い（ぬかされた ひとが 4い）だよ！'
+      },
+      {
+        id: 38, category: 'パズル', // [例10]
+        question: 'ある かずに「3」を たして、そのあと「5」を ひいたら「10」に なりました。さいしょの かずは いくつ？',
+        visual: makeFormula('□ ＋ 3 － 5 ＝ 10'),
+        answerType: 'number', answer: '12',
+        hint: '5 を ひくまえは 15。3 を たすまえは いくつかな？',
+        explanation: '10＋5＝15、15－3＝12 だよ！じかんを まきもどして かんがえよう。'
+      },
+      {
+        id: 39, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['1', '3', '5', '7', '9', '□', '13']),
+        answerType: 'number', answer: '11',
+        hint: '2ずつ ふえる「きすう」の ならびだよ。',
+        explanation: '9 ＋ 2 ＝ 11 だよ！'
+      },
+      {
+        id: 40, category: 'ずけい',
+        question: 'つみきを よこ2こ・たて2こ（4こ）ならべて、それを 2だん つみました。つみきは ぜんぶで なんこ？',
+        visual: makeFormula('🧱 1だんめ 4こ ＋ 2だんめ 4こ'),
+        answerType: 'number', answer: '8',
+        hint: '4こ が 2だん あるよ。',
+        explanation: '4 ＋ 4 ＝ 8こ だよ！'
+      },
+
+      // ==================== ★3 中級：ステージ 9 (Q41〜Q45) ====================
+      {
+        id: 41, category: 'かたまり', // [例11]
+        question: '99 ＋ 99 ＋ 99 ＋ 3 は いくつ？',
+        visual: makeFormula('99 ＋ 99 ＋ 99 ＋ 3 ＝ ？'),
+        answerType: 'number', answer: '300',
+        hint: '3 を「1・1・1」に わけて、3つの 99 に くばってみよう！',
+        explanation: '100 ＋ 100 ＋ 100 ＝ 300 だよ！'
+      },
+      {
+        id: 42, category: 'ワナ',
+        question: '3びょうに 1かい なる かねが あります。1かいめが なってから、5かいめが なるまで なんびょう かかる？',
+        visual: makeFormula('🔔―3s―🔔―3s―🔔―3s―🔔―3s―🔔'),
+        answerType: 'number', answer: '12',
+        hint: '1かいめから 5かいめまで、あいだは いくつ あるかな？',
+        explanation: 'あいだが 4つ あるから、3びょう×4 ＝ 12びょう だよ！'
+      },
+      {
+        id: 43, category: 'パズル', // [例12]
+        question: 'つぎの 2つの しきが なりたつとき、○ は いくつ？',
+        visual: makeFormula('○ ＋ ○ ＋ △ ＝ 10<br>○ ＋ △ ＝ 7'),
+        answerType: 'number', answer: '3',
+        hint: 'うえの しきの「○＋△」を そのまま「7」に かえてみよう！',
+        explanation: '○ ＋ 7 ＝ 10 に なるから、○ は 3 だよ！'
+      },
+      {
+        id: 44, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['30', '26', '22', '□', '14', '10']),
+        answerType: 'number', answer: '18',
+        hint: 'いくつずつ へっているかな？',
+        explanation: '4ずつ へっているから、22 － 4 ＝ 18 だよ！'
+      },
+      {
+        id: 45, category: 'パズル', // [例14-3] 3x3魔方陣(空欄複数)
+        question: 'たて・よこ・ななめ、たすと「15」の まほうじん。まず □ を みつけてから、？ を だしてみよう！',
+        visual: makeMagic3x3(['6', '1', '□', '7', '5', '3', '□', '9', '？']),
+        answerType: 'number', answer: '4',
+        hint: 'うえの よこ（6 ＋ 1 ＋ □ ＝ 15）で みぎうえは 8！つぎに みぎの たてを みよう。',
+        explanation: 'みぎうえが 8 だから、みぎの たては 8 ＋ 3 ＋ ？ ＝ 15 で、？ は 4 だよ！'
+      },
+
+      // ==================== ★3 中級：ステージ 10 (Q46〜Q50) ====================
+      {
+        id: 46, category: 'かたまり',
+        question: '5 を なんかい たしたら 100 に なる？',
+        visual: makeFormula('5 ＋ 5 ＋ 5 ＋ … ＝ 100'),
+        answerType: 'number', answer: '20',
+        hint: '5 を 2かい たすと 10。100 は 10 が 10こ あるよ。',
+        explanation: '2かい × 10 ＝ 20かい だよ！'
+      },
+      {
+        id: 47, category: 'パズル',
+        question: 'りんご 1こ と みかん 2こ で 100えん。りんご 1こ が 60えん のとき、みかん 1こ は なんえん？',
+        visual: makeFormula('🍎 ＋ 🍊 ＋ 🍊 ＝ 100えん<br>🍎 ＝ 60えん'),
+        answerType: 'number', answer: '20',
+        hint: 'みかん 2こで 40えん に なるね。その はんぶんは？',
+        explanation: '100－60＝40えん（みかん2こ分）。だから 1こは 20えん だよ！'
+      },
+      {
+        id: 48, category: 'パズル', // [例13]
+        question: '10えんだまと 50えんだまを あわせて「5まい」もっています。ぜんぶで「130えん」のとき、50えんだまは なんまい？',
+        visual: makeFormula('🪙50えん ＋ 🪙10えん ＝ 5まい・130えん'),
+        answerType: 'number', answer: '2',
+        hint: '50えんだまが 1まいなら 90えん、2まいなら いくらに なるかな？',
+        explanation: '50えんが2まい(100えん)＋10えんが3まい(30えん)＝130えん だよ！'
+      },
+      {
+        id: 49, category: 'ずけい',
+        question: 'いま 8じ 20ぷん です。50ぷんごは 9じ なんぷん？',
+        visual: makeClockSVG(8, 20),
+        answerType: 'number', answer: '10',
+        hint: 'まず 40ぷん たつと 9じ。のこり 10ぷん すすむよ！',
+        explanation: '9じ 10ぷん に なるから、こたえは 10 だよ！'
+      },
+      {
+        id: 50, category: 'ずけい',
+        question: 'サイコロを 2こ ならべました。うえの めんが「1」と「2」のとき、2この サイコロの したの めん（うらがわ）を たすと いくつ？',
+        visual: makeFormula('🎲(1のうら) ＋ 🎲(2のうら) ＝ ？'),
+        answerType: 'number', answer: '11',
+        hint: '1の うらは 6、2の うらは 5 だよ。',
+        explanation: '6 ＋ 5 ＝ 11 だよ！'
+      },
+
+      // ==================== ★3 中級：ステージ 11 (Q51〜Q55) ====================
+      {
+        id: 51, category: 'かたまり',
+        question: '37 ＋ 28 ＋ 13 ＋ 22 は いくつ？',
+        visual: makeFormula('37 ＋ 28 ＋ 13 ＋ 22 ＝ ？'),
+        answerType: 'number', answer: '100',
+        hint: '「37と13」「28と22」を くみあわせてみよう！',
+        explanation: '37＋13＝50、28＋22＝50。あわせて 100 だよ！'
+      },
+      {
+        id: 52, category: 'パズル',
+        question: 'ある かずを 2ばい（おなじかずを たす）して、1 を たしたら 15 に なりました。さいしょの かずは？',
+        visual: makeFormula('□ ＋ □ ＋ 1 ＝ 15'),
+        answerType: 'number', answer: '7',
+        hint: '1 を たすまえは 14。おなじ かずを 2つ たして 14 になるのは？',
+        explanation: '7 ＋ 7 ＝ 14、14 ＋ 1 ＝ 15 だから 7 だよ！'
+      },
+      {
+        id: 53, category: 'パズル',
+        question: 'カメ（あし4ほん）と ツル（あし2ほん）が あわせて 5ひき います。あしは ぜんぶで 14ほん。カメは なんびき？',
+        visual: makeFormula('🐢(4ほん) ＋ 🦢(2ほん) ＝ 5ひき・14ほん'),
+        answerType: 'number', answer: '2',
+        hint: 'ぜんぶ ツル(5わ)なら 10ぽん。あと 4ほん ふやすには カメが なんびき？',
+        explanation: 'カメ2ひき(8ほん)＋ツル3わ(6ほん)＝14ほん だよ！'
+      },
+      {
+        id: 54, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['1', '4', '9', '16', '□', '36']),
+        answerType: 'number', answer: '25',
+        hint: 'ふえかたを みよう。＋3、＋5、＋7… つぎは ＋9 だよ！',
+        explanation: '16 ＋ 9 ＝ 25！（1×1, 2×2, 3×3, 4×4, 5×5 にも なっているよ）'
+      },
+      {
+        id: 55, category: 'ずけい',
+        question: '大きな しかくの なかに、たて1本・よこ1本 せんを ひいて 4つの 小さな しかくに わけました。しかくは 大小あわせて ぜんぶで いくつ みつかる？',
+        visual: makeGrid2x2SVG(),
+        answerType: 'number', answer: '5',
+        hint: '小さな しかく 4つ だけじゃなくて、そとがわの 大きな しかくも 1つ あるよ！',
+        explanation: '小が 4つ ＋ 大が 1つ ＝ ぜんぶで 5つ だよ！'
+      },
+
+      // ==================== ★3 中級：ステージ 12 (Q56〜Q60) ====================
+      {
+        id: 56, category: 'かたまり',
+        question: '100 － 99 ＋ 98 － 97 は いくつ？',
+        visual: makeFormula('(100－99) ＋ (98－97) ＝ ？'),
+        answerType: 'number', answer: '2',
+        hint: 'まえの 2つ、うしろの 2つ で わけて けいさんしよう！',
+        explanation: '1 ＋ 1 ＝ 2！大きな かずでも ペアに すると かんたんだね。'
+      },
+      {
+        id: 57, category: 'パズル',
+        question: 'お兄さんは 14まい、おとうとは 6まい シールを もっています。お兄さんから なんまい わけてあげると、おなじ かずに なる？',
+        visual: makeFormula('兄 14まい ／ 弟 6まい'),
+        answerType: 'number', answer: '4',
+        hint: 'あわせて 20まい だから、10まいずつ に すれば いいよ！',
+        explanation: '14 － 10 ＝ 4まい わけてあげると、ふたりとも 10まいに なるよ！'
+      },
+      {
+        id: 58, category: 'パズル', // [例14-4] 3x3魔方陣(空欄3)
+        question: 'たて・よこ・ななめ、たすと「15」の まほうじん。？ に はいる かずは いくつ？',
+        visual: makeMagic3x3(['4', '□', '2', '□', '5', '7', '？', '1', '□']),
+        answerType: 'number', answer: '8',
+        hint: 'ななめ（2 ＋ 5 ＋ ？ ＝ 15）を みるか、まんなかの よこから ひだりなか（3）を だしてみよう！',
+        explanation: '2 ＋ 5 ＝ 7 だから、？ は 8 だよ！（ひだりの たても 4＋3＋8＝15 で ピッタリ！）'
+      },
+      {
+        id: 59, category: 'ワナ',
+        question: '7にんが 1れつに ならんでいます。たろうくんは まえから 2ばんめ。うしろから かぞえると なんばんめ？',
+        visual: makeSeq(['1', 'たろう', '3', '4', '5', '6', '7']),
+        answerType: 'number', answer: '6',
+        hint: '7 － 2 ＝ 5 だと、たろうくん じしんが はいらないよ！',
+        explanation: 'うしろに 5にん いるから、たろうくんは うしろから 6ばんめ だよ！'
+      },
+      {
+        id: 60, category: 'ずけい',
+        question: '1000えんさつを 1まい だして、360えんの おかしを かいました。おつりは なんえん？',
+        visual: makeFormula('💴1000 － 🍬360 ＝ ？'),
+        answerType: 'number', answer: '640',
+        hint: '360 に あと 40 たすと 400。400 から 1000 まで あと 600！',
+        explanation: '600 ＋ 40 ＝ 640えん だよ！'
+      },
+
+      // ==================== ★4 上級：ステージ 13 (Q61〜Q65) ====================
+      {
+        id: 61, category: 'かたまり',
+        question: '11 ＋ 12 ＋ 13 ＋ 14 ＋ 15 は いくつ？',
+        visual: makeFormula('11 ＋ 12 ＋ 13 ＋ 14 ＋ 15 ＝ ？'),
+        answerType: 'number', answer: '65',
+        hint: '「11と15」「12と14」は どちらも 26！または まんなかの 13 が 5こ あるのと おなじだよ。',
+        explanation: '26 ＋ 26 ＋ 13 ＝ 65 だよ！'
+      },
+      {
+        id: 62, category: 'ワナ',
+        question: 'まるい いけの まわりに、5m おきに きを 6ぽん うえました。いけの まわりは ぜんぶで なんm？',
+        visual: makePondSVG(),
+        answerType: 'number', answer: '30',
+        hint: 'ぐるっと まるい わっか なので、き と き の「あいだ」も 6つ あるよ！',
+        explanation: '5m の あいだが 6つ あるから、5 × 6 ＝ 30m だよ！'
+      },
+      {
+        id: 63, category: 'パズル', // [例14-5] 変則魔方陣(十字型)
+        question: 'じゅうじ（＋）の まほうじん！たての 3つも、よこの 3つも、たすと「9」になります。？ は いくつ？',
+        visual: makeCrossMagic('1', '2', '□', '？', '5'),
+        answerType: 'number', answer: '4',
+        hint: 'まず たて（1 ＋ □ ＋ 5 ＝ 9）から、まんなかの □ を だそう！',
+        explanation: 'まんなかが 3 になるから、よこは 2 ＋ 3 ＋ ？ ＝ 9 で、？ は 4 だよ！'
+      },
+      {
+        id: 64, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['1', '1', '2', '3', '5', '8', '□']),
+        answerType: 'number', answer: '13',
+        hint: 'まえの 2つの かずを たすと つぎの かずに なっているよ！',
+        explanation: '5 ＋ 8 ＝ 13！（フィボナッチすうれつ という ゆうめいな かずだよ）'
+      },
+      {
+        id: 65, category: 'ずけい',
+        question: 'サイコロの てんかいず を くみたてます。むかいあう めんの わ が「7」になるとき、？ は いくつ？',
+        visual: makeDiceNetSVG(),
+        answerType: 'number', answer: '6',
+        hint: 'おりたたむと、？ は「1」の むかいがわに くるよ！',
+        explanation: '1 の むかいがわ だから、7 － 1 ＝ 6 だよ！'
+      },
+
+      // ==================== ★4 上級：ステージ 14 (Q66〜Q70) ====================
+      {
+        id: 66, category: 'かたまり',
+        question: '198 ＋ 199 ＋ 3 は いくつ？',
+        visual: makeFormula('198 ＋ 199 ＋ 3 ＝ ？'),
+        answerType: 'number', answer: '400',
+        hint: '3 を「2 と 1」に わけて、198 と 199 に あげよう！',
+        explanation: '200 ＋ 200 ＝ 400 だよ！'
+      },
+      {
+        id: 67, category: 'ワナ',
+        question: 'かえるが ふかさ 5m の いど から でようとしています。ひるに 2m のぼって、よるに 1m すべります。なんにちめに でられる？',
+        visual: makeFormula('🐸 ひる ＋2m ／ よる －1m（5mで ゴール！）'),
+        answerType: 'number', answer: '4',
+        hint: '3にちめの よるに 3m の ばしょ。4にちめの ひるに 2m のぼると…？',
+        explanation: '4にちめの ひるに 3＋2＝5m に ついて 出られるから、よるは すべらないよ！'
+      },
+      {
+        id: 68, category: 'パズル',
+        question: 'A ＋ B ＝ 9、A － B ＝ 1 のとき、A は いくつ？',
+        visual: makeFormula('A ＋ B ＝ 9<br>A － B ＝ 1'),
+        answerType: 'number', answer: '5',
+        hint: 'たして 9 に なって、1 だけ ちがう 2つの かずを さがそう！',
+        explanation: '5 ＋ 4 ＝ 9、5 － 4 ＝ 1 だから、A は 5 だよ！'
+      },
+      {
+        id: 69, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['2', '3', '5', '8', '12', '□']),
+        answerType: 'number', answer: '17',
+        hint: 'ふえかたが ＋1、＋2、＋3、＋4… と 1ずつ おおきく なっているよ！',
+        explanation: 'つぎは ＋5 だから、12 ＋ 5 ＝ 17 だよ！'
+      },
+      {
+        id: 70, category: 'ワナ',
+        question: '10にんの 子どもが かくれんぼを しています。オニが 3にん みつけました。まだ かくれているのは なんにん？',
+        visual: makeFormula('👹 ぜんぶで 10にん（オニ 1にん）'),
+        answerType: 'number', answer: '6',
+        hint: '10にんの うち 1にんは「オニ」だよ！かくれているのは 9にん から スタート！',
+        explanation: 'かくれたのは 9にん。3にん みつかったから 9 － 3 ＝ 6にん だよ！'
+      },
+
+      // ==================== ★4 上級：ステージ 15 (Q71〜Q75) ====================
+      {
+        id: 71, category: 'かたまり',
+        question: '1 ＋ 3 ＋ 5 ＋ 7 ＋ 9 ＋ 11 は いくつ？',
+        visual: makeFormula('1 ＋ 3 ＋ 5 ＋ 7 ＋ 9 ＋ 11 ＝ ？'),
+        answerType: 'number', answer: '36',
+        hint: '「1と11」「3と9」「5と7」で 12 が 3くみ できるよ！',
+        explanation: '12 ＋ 12 ＋ 12 ＝ 36！（きすうを 6こ たすと 6×6＝36 に なるよ）'
+      },
+      {
+        id: 72, category: 'パズル',
+        question: '50えんだまと 100えんだまが あわせて 6まい あります。ぜんぶで 450えんのとき、100えんだまは なんまい？',
+        visual: makeFormula('🪙100えん ＋ 🪙50えん ＝ 6まい・450えん'),
+        answerType: 'number', answer: '3',
+        hint: 'もし ぜんぶ 50えんだま(6まい)なら 300えん。あと 150えん ふやすには？',
+        explanation: '100えんが3まい(300えん)＋50えんが3まい(150えん)＝450えん だよ！'
+      },
+      {
+        id: 73, category: 'パズル', // [例14-6] 変則魔方陣(三角形型)
+        question: 'さんかく まほうじん！どの へんも 3つの かずを たすと「10」になります。まず □ を みつけてから、？ を だそう！',
+        visual: makeTriangleMagicSVG('1', '6', '4', '3', '？', '□'),
+        answerType: 'number', answer: '2',
+        hint: 'みぎの へん（1 ＋ 4 ＋ □ ＝ 10）で みぎしたは 5！つぎに したの へんを みよう。',
+        explanation: 'みぎしたが 5 だから、したの へんは 3 ＋ ？ ＋ 5 ＝ 10 で、？ は 2 だよ！'
+      },
+      {
+        id: 74, category: 'きそく',
+        question: '「A・B・C・D・A・B・C・D…」と ならべます。23ばんめは なに？',
+        visual: makeSeq(['A', 'B', 'C', 'D', 'A', 'B', '…', '23ばんめ']),
+        answerType: 'choice', choices: ['A', 'B', 'C', 'D'], answer: 'C',
+        hint: '4こずつ くりかえすよ。4, 8, 12, 16, 20ばんめが D だね！',
+        explanation: '20ばんめが D、21がA、22がB、23ばんめは「C」だよ！'
+      },
+      {
+        id: 75, category: 'ずけい',
+        question: 'つみきを 下のだんに 9こ、まんなかに 4こ、うえに 1こ つみました。つみきは ぜんぶで なんこ？',
+        visual: makePyramidBlocksSVG(),
+        answerType: 'number', answer: '14',
+        hint: '9 ＋ 1 ＝ 10 を さきに つくると かんたんだよ！',
+        explanation: '9 ＋ 1 ＋ 4 ＝ 14こ だよ！'
+      },
+
+      // ==================== ★4 上級：ステージ 16 (Q76〜Q80) ====================
+      {
+        id: 76, category: 'かたまり',
+        question: '250 ＋ 250 ＋ 250 ＋ 250 は いくつ？',
+        visual: makeFormula('250 ＋ 250 ＋ 250 ＋ 250 ＝ ？'),
+        answerType: 'number', answer: '1000',
+        hint: '250 ＋ 250 ＝ 500 だよ。500 が 2つ あるね！',
+        explanation: '500 ＋ 500 ＝ 1000 だよ！'
+      },
+      {
+        id: 77, category: 'ワナ',
+        question: '3びきの ネコが 3ぷんで 3びきの ネズミを つかまえます。では 1ぴきの ネコが 1ぴきの ネズミを つかまえるのに なんぷん かかる？',
+        visual: makeFormula('🐱🐱🐱 → 3ぷんで → 🐭🐭🐭'),
+        answerType: 'number', answer: '3',
+        hint: '3びきの ネコが それぞれ じぶんの ネズミを どうじに おいかけるよ！',
+        explanation: 'みんな いっしょに おいかけるから、1ぴきでも 3ぷん かかるよ！'
+      },
+      {
+        id: 78, category: 'パズル',
+        question: '★ ＋ ★ ＋ ● ＝ 13、★ ＋ ● ＋ ● ＝ 11 のとき、★ ＋ ● は いくつ？',
+        visual: makeFormula('★＋★＋●＝13<br>★＋●＋●＝11'),
+        answerType: 'number', answer: '8',
+        hint: '2つの しきを ぜんぶ たすと、★が3つ と ●が3つ で「24」に なるよ！',
+        explanation: '3くみで 24 だから、1くみ（★＋●）は 8 だよ！（★＝5、●＝3 で ピッタリ！）'
+      },
+      {
+        id: 79, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['3', '6', '12', '24', '□']),
+        answerType: 'number', answer: '48',
+        hint: 'まえの かずの 2ばい（おなじ かずを たす）に なっているよ！',
+        explanation: '24 ＋ 24 ＝ 48 だよ！'
+      },
+      {
+        id: 80, category: 'きそく',
+        question: 'きょうは げつようび です。15にちごは なにようび？',
+        visual: makeFormula('📅 きょう：げつようび → 15にちごは？'),
+        answerType: 'choice', choices: ['げつようび', 'かようび', 'すいようび', 'にちようび'], answer: 'かようび',
+        hint: '7にちご・14にちごは おなじ「げつようび」だよ！',
+        explanation: '14にちごが げつようび だから、その つぎの 15にちごは「かようび」だよ！'
+      },
+
+      // ==================== ★5 マスター：ステージ 17 (Q81〜Q85) ====================
+      {
+        id: 81, category: 'かたまり',
+        question: '1から 20まで ぜんぶ たすと、いくつに なる？',
+        visual: makeFormula('1 ＋ 2 ＋ 3 ＋ … ＋ 19 ＋ 20 ＝ ？'),
+        answerType: 'number', answer: '210',
+        hint: '「1と20」「2と19」… 21 の ペアが ぜんぶで 10くみ できるよ！',
+        explanation: '21 × 10 ＝ 210！ガウスの けいさん という すごい わざだよ！'
+      },
+      {
+        id: 82, category: 'ワナ',
+        question: '20m の まっすぐな みちの「みぎ と ひだり の りょうがわ」に、5m おきに はたを たてます。はじから はじまで、はたは ぜんぶで なんぼん？',
+        visual: makeRoadSVG('20m（りょうがわ！）', '5m'),
+        answerType: 'number', answer: '10',
+        hint: 'かたがわで 5ほん ひつようだよ。みぎ と ひだり の りょうがわ だと…？',
+        explanation: 'かたがわ 5ほん × 2（りょうがわ）＝ ぜんぶで 10ぽん だよ！'
+      },
+      {
+        id: 83, category: 'パズル', // [例14-7] 難しい3x3魔方陣(空欄4)
+        question: 'たて・よこ・ななめ、たすと「15」の むずかしい まほうじん！？ は いくつ？',
+        visual: makeMagic3x3(['□', '3', '4', '1', '5', '□', '6', '□', '？']),
+        answerType: 'number', answer: '2',
+        hint: 'うえの よこ（□＋3＋4＝15）で ひだりうえは 8！つぎに ななめ（8＋5＋？）を みよう！',
+        explanation: 'ひだりうえが 8 だから、ななめは 8 ＋ 5 ＋ ？ ＝ 15 で、？ は 2 だよ！'
+      },
+      {
+        id: 84, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['2', '6', '12', '20', '30', '□']),
+        answerType: 'number', answer: '42',
+        hint: 'ふえかたを みよう。＋4、＋6、＋8、＋10… つぎは ＋12 だよ！',
+        explanation: '30 ＋ 12 ＝ 42 だよ！'
+      },
+      {
+        id: 85, category: 'ずけい',
+        question: 'サイコロを 2こ たてに つんで、ゆかに おきました。そとから「みえない めん」は、あわせて なんめん ある？',
+        visual: makeFormula('🎲 上のサイコロ ＋ 🎲 下のサイコロ（ゆかに おく）'),
+        answerType: 'number', answer: '3',
+        hint: 'ゆかに ついている 1めん と、サイコロどうしが くっついている 2めん が みえないよ！',
+        explanation: 'ゆかとの 1めん ＋ くっついている 2めん ＝ ぜんぶで 3めん だよ！'
+      },
+
+      // ==================== ★5 マスター：ステージ 18 (Q86〜Q90) ====================
+      {
+        id: 86, category: 'かたまり',
+        question: '999 ＋ 999 ＋ 2 は いくつ？',
+        visual: makeFormula('999 ＋ 999 ＋ 2 ＝ ？'),
+        answerType: 'number', answer: '2000',
+        hint: '2 を「1 と 1」に わけて、999 に あげよう！',
+        explanation: '1000 ＋ 1000 ＝ 2000！きもちいいね！'
+      },
+      {
+        id: 87, category: 'パズル',
+        question: 'クモ（あし8ほん）と テントウムシ（あし6ほん）が あわせて 5ひき います。あしは ぜんぶで 34ほん。クモは なんびき？',
+        visual: makeFormula('🕷️(8ほん) ＋ 🐞(6ほん) ＝ 5ひき・34ほん'),
+        answerType: 'number', answer: '2',
+        hint: 'ぜんぶ テントウムシ(5ひき)なら 30ぽん。あと 4ほん ふやすには クモが なんびき？',
+        explanation: 'クモ2ひき(16ほん)＋テントウムシ3びき(18ほん)＝34ほん だよ！'
+      },
+      {
+        id: 88, category: 'パズル',
+        question: 'あか・あお・きいろの 3つの はこが あります。「あか は あお より おもく」「きいろ は あか より おもい」です。いちばん かるいのは なにいろ？',
+        visual: makeFormula('📦 あか ＞ あお ／ きいろ ＞ あか'),
+        answerType: 'choice', choices: ['あか', 'あお', 'きいろ'], answer: 'あお',
+        hint: 'おもい じゅんばんに ならべると「きいろ → あか → ？」になるよ！',
+        explanation: 'きいろ ＞ あか ＞ あお だから、いちばん かるいのは「あお」だよ！'
+      },
+      {
+        id: 89, category: 'きそく',
+        question: '□ に はいる かずは いくつ？',
+        visual: makeSeq(['1', '3', '7', '15', '31', '□']),
+        answerType: 'number', answer: '63',
+        hint: 'まえの かずを 2ばい して 1 を たしているよ！（31＋31＋1）',
+        explanation: '31 ＋ 31 ＋ 1 ＝ 63 だよ！すごい ルールだね！'
+      },
+      {
+        id: 90, category: 'ずけい',
+        question: 'いま 11じ 45ふん です。35ふんごは 12じ なんぷん？',
+        visual: makeClockSVG(11, 45),
+        answerType: 'number', answer: '20',
+        hint: 'まず 15ふん たつと 12じ。のこり 20ぷん すすむよ！',
+        explanation: '12じ 20ぷん に なるから、こたえは 20 だよ！'
+      },
+
+      // ==================== ★5 マスター：ステージ 19 (Q91〜Q95) ====================
+      {
+        id: 91, category: 'かたまり',
+        question: '2 ＋ 4 ＋ 6 ＋ 8 ＋ 10 ＋ 12 ＋ 14 ＋ 16 ＋ 18 ＋ 20 は いくつ？',
+        visual: makeFormula('2＋4＋6＋…＋18＋20 ＝ ？'),
+        answerType: 'number', answer: '110',
+        hint: '「2と20」「4と18」… 22 が 5くみ！または 1〜10のわ(55) の 2ばい だよ！',
+        explanation: '55 ＋ 55 ＝ 110！（22 × 5 ＝ 110 でも でるよ！）'
+      },
+      {
+        id: 92, category: 'パズル',
+        question: 'ある かずを 2ばい して 4 を たし、それを はんぶんに したら「10」に なりました。さいしょの かずは？',
+        visual: makeFormula('(□×2 ＋ 4) の はんぶん ＝ 10'),
+        answerType: 'number', answer: '8',
+        hint: 'はんぶんに するまえは 20。4 を たすまえは 16。2ばい するまえは？',
+        explanation: '20 → 16 → 8！ 8×2＋4＝20、その はんぶんで 10 だね！'
+      },
+      {
+        id: 93, category: 'パズル', // [例14-8] 応用3x3魔方陣(和18)
+        question: 'たて・よこ・ななめ、どの れつも たすと「18」になる おうよう まほうじん！？ は いくつ？',
+        visual: makeMagic3x3(['9', '□', '7', '4', '6', '□', '5', '10', '？']),
+        answerType: 'number', answer: '3',
+        hint: 'ななめ（9 ＋ 6 ＋ ？ ＝ 18）や、したの よこ（5 ＋ 10 ＋ ？ ＝ 18）を みてみよう！',
+        explanation: '9 ＋ 6 ＝ 15 だから、18 に するには 3 が はいるよ！'
+      },
+      {
+        id: 94, category: 'パズル',
+        question: '10えん・50えん・100えんの 3しゅるいを ぜんぶ 1まい いじょう つかって、あわせて「5まい」で「220えん」に します。100えんだまは なんまい？',
+        visual: makeFormula('🪙100・🪙50・🪙10 → 5まいで 220えん'),
+        answerType: 'number', answer: '1',
+        hint: 'もし 100えんだまが 2まい(200えん)だと、のこり 3まいで 20えん に できないよ！',
+        explanation: '100えん1まい＋50えん2まい＋10えん2まい＝220えん（5まい）だよ！'
+      },
+      {
+        id: 95, category: 'パズル',
+        question: 'まるい テーブルに A・B・C・D の 4にんが すわっています。Aの むかいは C、Aの みぎどなりは B。では Aの ひだりどなり（？）は だれ？',
+        visual: makeTableSeatSVG(),
+        answerType: 'choice', choices: ['A', 'B', 'C', 'D'], answer: 'D',
+        hint: '4にんの うち、A・B・C の ばしょが きまったよ！のこった 1にんは？',
+        explanation: 'のこった せきに すわるのは「D」だよ！'
+      },
+
+      // ==================== ★5 マスター：ステージ 20 (Q96〜Q100) ====================
+      {
+        id: 96, category: 'かたまり',
+        question: '100 － 98 ＋ 96 － 94 ＋ 92 － 90 は いくつ？',
+        visual: makeFormula('(100－98) ＋ (96－94) ＋ (92－90)'),
+        answerType: 'number', answer: '6',
+        hint: '2つずつの ペアに すると、ぜんぶ「2」に なるよ！',
+        explanation: '2 ＋ 2 ＋ 2 ＝ 6 だよ！'
+      },
+      {
+        id: 97, category: 'きそく',
+        question: '1から 50までの かずを ならべました。5, 10, 15… のように「5とびの かず」は ぜんぶで なんこ ある？',
+        visual: makeSeq(['5', '10', '15', '…', '45', '50']),
+        answerType: 'number', answer: '10',
+        hint: '10までに 2こ あるよ。50 は 10 が 5つ あるね！',
+        explanation: '2こ × 5 ＝ 10こ だよ！'
+      },
+      {
+        id: 98, category: 'パズル',
+        question: '3人で じゃんけんを しました。たろうは グー、はなこは チョキ を だして「あいこ」に なりました。けんじは なにを だした？',
+        visual: makeFormula('✊ ＋ ✌️ ＋ ？ ＝ あいこ'),
+        answerType: 'choice', choices: ['グー', 'チョキ', 'パー'], answer: 'パー',
+        hint: '3しゅるい ぜんぶ そろうと あいこ に なるよ！',
+        explanation: 'グー・チョキ・パー の 3つが そろうと あいこ だから「パー」だよ！'
+      },
+      {
+        id: 99, category: 'ずけい',
+        question: 'よこ 3cm の しかくい おりがみを、1cm だけ かさねて よこに 2まい ならべました。ぜんぶの よこの ながさは なんcm？',
+        visual: makeOverlapSVG(),
+        answerType: 'number', answer: '5',
+        hint: '3 ＋ 3 ＝ 6cm から、かさなった 1cm を ひこう！',
+        explanation: '3 ＋ 3 － 1 ＝ 5cm だよ！'
+      },
+      {
+        id: 100, category: 'ずけい',
+        question: 'さいごの もんだい！1から 100までの かずの なかに、「9」という すうじは ぜんぶで なんかい でてくる？（ヒント：99は 2かい！）',
+        visual: makeFormula('9, 19, 29 … 90, 91 … 99'),
+        answerType: 'number', answer: '20',
+        hint: '1のくらいに 10かい（9,19…99）、10のくらいにも 10かい（90,91…99）あるよ！',
+        explanation: '10 ＋ 10 ＝ 20かい！100もん ぜんぶ やりきったね、おめでとう！！'
+      }
+    ];
+
+    // =========================================================================
+    // 4. 状態管理 & localStorage
+    // =========================================================================
+    const STORAGE_KEY = 'math_sense_100_v2';
+    let saveData = {
+      clearedStages: {}, // { stageNum: bestTimeSec }
+      solvedIds: [],     // [1, 2, 3, ...]
+      sound: true
+    };
+
+    let currentStage = 1;
+    let currentQIndex = 0;
+    let stageQuestions = [];
+    let currentInput = '';
+    let timerInterval = null;
+    let elapsedSec = 0;
+    let isAnswered = false;
+
+    function loadSaveData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          saveData = {
+            clearedStages: parsed.clearedStages || {},
+            solvedIds: Array.isArray(parsed.solvedIds) ? parsed.solvedIds : [],
+            sound: parsed.sound !== undefined ? parsed.sound : true
+          };
+        }
+      } catch (e) {
+        console.error('Save load error:', e);
+      }
+      updateSoundButtons();
+    }
+
+    function persistSaveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+      } catch (e) {
+        console.error('Save write error:', e);
+      }
+    }
+
+    // =========================================================================
+    // 5. Web Audio API 効果音
+    // =========================================================================
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, duration, type = 'sine', startTime = 0, vol = 0.14) {
+      if (!saveData.sound) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime + startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + startTime);
+      osc.stop(audioCtx.currentTime + startTime + duration);
+    }
+
+    function playTapSound() { playTone(520, 0.05, 'triangle', 0, 0.08); }
+    function playCorrectSound() {
+      playTone(659.25, 0.12, 'sine', 0, 0.16);
+      playTone(880.00, 0.25, 'sine', 0.1, 0.16);
+    }
+    function playWrongSound() {
+      playTone(190, 0.13, 'sawtooth', 0, 0.09);
+      playTone(155, 0.18, 'sawtooth', 0.13, 0.09);
+    }
+    function playFanfareSound() {
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((n, i) => playTone(n, i === 3 ? 0.45 : 0.13, 'triangle', i * 0.11, 0.17));
+    }
+
+    function toggleSound() {
+      saveData.sound = !saveData.sound;
+      persistSaveData();
+      updateSoundButtons();
+      if (saveData.sound) playTapSound();
+    }
+
+    function updateSoundButtons() {
+      const icon = saveData.sound ? '🔊' : '🔇';
+      document.getElementById('btn-sound-home').textContent = icon;
+      document.getElementById('btn-sound-play').textContent = icon;
+      const modalBtn = document.getElementById('btn-sound-modal');
+      if (modalBtn) {
+        modalBtn.textContent = saveData.sound ? 'ON' : 'OFF';
+        modalBtn.className = saveData.sound
+          ? 'bg-sky-500 text-white font-extrabold px-4 py-1.5 rounded-xl text-sm'
+          : 'bg-slate-300 text-slate-700 font-extrabold px-4 py-1.5 rounded-xl text-sm';
+      }
+    }
+
+    // =========================================================================
+    // 6. 画面遷移 & ホーム画面（5段階グループ表示）
+    // =========================================================================
+    function showScreen(screenId) {
+      ['screen-home', 'screen-play', 'screen-clear'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function formatTime(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function renderHome() {
+      const clearedStageCount = Object.keys(saveData.clearedStages).length;
+      const solvedCount = saveData.solvedIds.length;
+
+      document.getElementById('home-badge-count').textContent = `${clearedStageCount}/20`;
+      document.getElementById('home-progress-text').textContent = `${solvedCount} / 100 もん`;
+      document.getElementById('home-progress-bar').style.width = `${solvedCount}%`;
+
+      const container = document.getElementById('stage-tiers-container');
+      container.innerHTML = '';
+
+      TIERS.forEach(tierObj => {
+        const section = document.createElement('section');
+        section.className = `rounded-3xl border-2 ${tierObj.border} ${tierObj.softBg} overflow-hidden shadow-sm`;
+
+        const header = document.createElement('div');
+        header.className = `${tierObj.headerBg} text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2`;
+        header.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="bg-white/20 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-extrabold tracking-wider">${tierObj.stars}</span>
+            <h2 class="font-extrabold text-base sm:text-lg">${tierObj.title}</h2>
+          </div>
+          <span class="text-xs font-bold text-white/90">${tierObj.desc}</span>
+        `;
+        section.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3';
+
+        tierObj.stages.forEach(s => {
+          const isCleared = saveData.clearedStages[s] !== undefined;
+          const reward = REWARDS[s - 1];
+          const qStart = (s - 1) * 5 + 1;
+          const qEnd = s * 5;
+          let stageSolved = 0;
+          for (let qid = qStart; qid <= qEnd; qid++) {
+            if (saveData.solvedIds.includes(qid)) stageSolved++;
+          }
+
+          const card = document.createElement('button');
+          card.onclick = () => startStage(s);
+          card.className = `action-btn text-left p-3 rounded-2xl border-2 flex flex-col justify-between transition ${
+            isCleared
+              ? 'bg-amber-50 border-amber-300 shadow-[0_3px_0_#fcd34d] hover:bg-amber-100/80'
+              : 'bg-white border-slate-200 shadow-[0_3px_0_#cbd5e1] hover:bg-sky-50'
+          }`;
+
+          card.innerHTML = `
+            <div class="flex items-center justify-between w-full mb-1">
+              <span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full ${isCleared ? 'bg-amber-400 text-white' : tierObj.badge}">
+                STAGE ${s}
+              </span>
+              <span class="text-xl">${isCleared ? reward.icon : '🔒'}</span>
+            </div>
+            <div class="font-extrabold text-slate-800 text-sm">
+              Q.${qStart} 〜 ${qEnd}
+            </div>
+            <div class="mt-1.5 flex items-center justify-between text-[11px] font-bold">
+              <span class="${isCleared ? 'text-amber-700' : 'text-slate-400'}">
+                ${isCleared ? `⏱ ${formatTime(saveData.clearedStages[s])}` : `${stageSolved}/5 もん`}
+              </span>
+              ${isCleared ? '<span class="text-emerald-600 font-extrabold">クリア!</span>' : ''}
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+        section.appendChild(grid);
+        container.appendChild(section);
+      });
+    }
+
+    function goHome() {
+      stopTimer();
+      stopConfetti();
+      renderHome();
+      showScreen('screen-home');
+    }
+
+    // =========================================================================
+    // 7. クイズプレイロジック
+    // =========================================================================
+    function startStage(stageNum) {
+      playTapSound();
+      currentStage = stageNum;
+      currentQIndex = 0;
+      const startIdx = (stageNum - 1) * 5;
+      stageQuestions = QUESTIONS.slice(startIdx, startIdx + 5);
+
+      elapsedSec = 0;
+      document.getElementById('play-timer').textContent = '00:00';
+      stopTimer();
+      timerInterval = setInterval(() => {
+        elapsedSec++;
+        document.getElementById('play-timer').textContent = formatTime(elapsedSec);
+      }, 1000);
+
+      showScreen('screen-play');
+      renderQuestion();
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function renderQuestion() {
+      const q = stageQuestions[currentQIndex];
+      const tier = getTierForStage(currentStage);
+      isAnswered = false;
+      currentInput = '';
+
+      document.getElementById('play-stage-label').textContent = `ステージ ${currentStage}（${tier.stars}）`;
+      document.getElementById('play-q-count').textContent = `${currentQIndex + 1} / 5 もん`;
+      document.getElementById('play-progress-bar').style.width = `${((currentQIndex + 1) / 5) * 100}%`;
+
+      document.getElementById('q-number-badge').textContent = `Q.${q.id}`;
+      const cat = CATEGORY_STYLES[q.category] || { label: q.category, bg: 'bg-sky-100 text-sky-700' };
+      const catEl = document.getElementById('q-category');
+      catEl.textContent = cat.label;
+      catEl.className = `inline-block text-xs font-extrabold px-3 py-1 rounded-full ${cat.bg}`;
+
+      document.getElementById('q-text').textContent = q.question;
+      const visEl = document.getElementById('q-visual');
+      visEl.innerHTML = q.visual || '';
+      visEl.classList.toggle('hidden', !q.visual);
+
+      document.getElementById('hint-box').classList.add('hidden');
+      document.getElementById('hint-text').textContent = q.hint;
+      document.getElementById('btn-hint').classList.remove('hidden');
+      document.getElementById('wrong-msg').classList.add('hidden');
+      document.getElementById('correct-panel').classList.add('hidden');
+      document.getElementById('input-area').classList.remove('hidden');
+
+      const modeNum = document.getElementById('mode-number');
+      const modeChoice = document.getElementById('mode-choice');
+
+      if (q.answerType === 'number') {
+        modeNum.classList.remove('hidden');
+        modeChoice.classList.add('hidden');
+        updateNumDisplay();
+      } else {
+        modeNum.classList.add('hidden');
+        modeChoice.classList.remove('hidden');
+        modeChoice.innerHTML = '';
+        q.choices.forEach(choice => {
+          const btn = document.createElement('button');
+          btn.textContent = choice;
+          btn.onclick = () => checkAnswer(choice);
+          btn.className = 'action-btn bg-sky-50 hover:bg-sky-100 border-2 border-sky-300 text-sky-900 font-extrabold text-lg py-4 px-3 rounded-2xl shadow-[0_4px_0_#7dd3fc]';
+          modeChoice.appendChild(btn);
+        });
+      }
+    }
+
+    function showHint() {
+      playTapSound();
+      document.getElementById('hint-box').classList.remove('hidden');
+      document.getElementById('btn-hint').classList.add('hidden');
+    }
+
+    function pressNum(digit) {
+      if (isAnswered || currentInput.length >= 6) return;
+      playTapSound();
+      currentInput = currentInput === '0' ? digit : currentInput + digit;
+      updateNumDisplay();
+      document.getElementById('wrong-msg').classList.add('hidden');
+    }
+
+    function clearNum() {
+      if (isAnswered) return;
+      playTapSound();
+      currentInput = '';
+      updateNumDisplay();
+    }
+
+    function updateNumDisplay() {
+      const disp = document.getElementById('num-display');
+      disp.innerHTML = currentInput === '' ? '<span class="text-slate-300">？</span>' : currentInput;
+    }
+
+    function submitNumber() {
+      if (isAnswered || currentInput === '') return;
+      checkAnswer(currentInput);
+    }
+
+    function checkAnswer(userAns) {
+      if (isAnswered) return;
+      const q = stageQuestions[currentQIndex];
+
+      if (String(userAns) === String(q.answer)) {
+        isAnswered = true;
+        playCorrectSound();
+
+        if (!saveData.solvedIds.includes(q.id)) {
+          saveData.solvedIds.push(q.id);
+          persistSaveData();
+        }
+
+        document.getElementById('wrong-msg').classList.add('hidden');
+        document.getElementById('input-area').classList.add('hidden');
+        document.getElementById('btn-hint').classList.add('hidden');
+
+        document.getElementById('correct-answer-badge').textContent = `こたえ：${q.answer}`;
+        document.getElementById('explanation-text').textContent = q.explanation;
+        document.getElementById('btn-next-q').textContent =
+          currentQIndex < 4 ? 'つぎの もんだいへ ▶' : 'けっかを みる！ 🎉';
+        document.getElementById('correct-panel').classList.remove('hidden');
+      } else {
+        playWrongSound();
+        const wrongEl = document.getElementById('wrong-msg');
+        wrongEl.classList.remove('hidden', 'animate-shake');
+        void wrongEl.offsetWidth;
+        wrongEl.classList.add('animate-shake');
+        if (q.answerType === 'number') {
+          currentInput = '';
+          updateNumDisplay();
+        }
+      }
+    }
+
+    function nextQuestion() {
+      playTapSound();
+      if (currentQIndex < 4) {
+        currentQIndex++;
+        renderQuestion();
+      } else {
+        finishStage();
+      }
+    }
+
+    // =========================================================================
+    // 8. ステージクリア & 紙吹雪
+    // =========================================================================
+    function finishStage() {
+      stopTimer();
+      playFanfareSound();
+
+      const prevBest = saveData.clearedStages[currentStage];
+      const isNewBest = prevBest === undefined || elapsedSec < prevBest;
+      if (isNewBest) {
+        saveData.clearedStages[currentStage] = elapsedSec;
+        persistSaveData();
+      }
+
+      const tier = getTierForStage(currentStage);
+      const reward = REWARDS[currentStage - 1];
+      document.getElementById('clear-tier-label').textContent = `${tier.stars} ${tier.title} STAGE CLEAR!`;
+      document.getElementById('clear-title').textContent = `ステージ ${currentStage} クリア！`;
+      document.getElementById('clear-time').textContent = formatTime(elapsedSec);
+      document.getElementById('clear-best-badge').classList.toggle('hidden', !isNewBest);
+      document.getElementById('clear-reward-icon').textContent = reward.icon;
+      document.getElementById('clear-reward-name').textContent = reward.name;
+      document.getElementById('clear-reward-desc').textContent = reward.desc;
+
+      const nextBtn = document.getElementById('btn-next-stage');
+      if (currentStage < 20) {
+        nextBtn.classList.remove('hidden');
+        nextBtn.textContent = `ステージ ${currentStage + 1} へ ▶`;
+      } else {
+        nextBtn.classList.add('hidden');
+      }
+
+      showScreen('screen-clear');
+      startConfetti();
+    }
+
+    function startNextStage() {
+      stopConfetti();
+      if (currentStage < 20) {
+        startStage(currentStage + 1);
+      } else {
+        goHome();
+      }
+    }
+
+    let confettiAnimId = null;
+    function startConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      canvas.classList.remove('hidden');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const ctx = canvas.getContext('2d');
+
+      const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#ec4899'];
+      const particles = Array.from({ length: 95 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * -canvas.height,
+        w: Math.random() * 10 + 6,
+        h: Math.random() * 6 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.random() * 3 + 2.5,
+        vx: (Math.random() - 0.5) * 2.2,
+        rot: Math.random() * 360,
+        vrot: (Math.random() - 0.5) * 8
+      }));
+
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.y += p.vy;
+          p.x += p.vx;
+          p.rot += p.vrot;
+          if (p.y > canvas.height) {
+            p.y = -20;
+            p.x = Math.random() * canvas.width;
+          }
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        });
+        confettiAnimId = requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    function stopConfetti() {
+      if (confettiAnimId) {
+        cancelAnimationFrame(confettiAnimId);
+        confettiAnimId = null;
+      }
+      document.getElementById('confetti-canvas').classList.add('hidden');
+    }
+
+    // =========================================================================
+    // 9. ごほうび図鑑 & 設定モーダル
+    // =========================================================================
+    function openCollectionModal() {
+      playTapSound();
+      const clearedCount = Object.keys(saveData.clearedStages).length;
+      document.getElementById('modal-badge-count').textContent = `${clearedCount}/20`;
+
+      const grid = document.getElementById('collection-grid');
+      grid.innerHTML = '';
+
+      REWARDS.forEach(r => {
+        const unlocked = saveData.clearedStages[r.id] !== undefined;
+        const btn = document.createElement('button');
+        btn.className = `p-2.5 rounded-2xl border-2 flex flex-col items-center justify-center transition ${
+          unlocked
+            ? 'bg-amber-50 border-amber-300 hover:bg-amber-100'
+            : 'bg-slate-100 border-slate-200 opacity-60'
+        }`;
+        btn.innerHTML = `
+          <span class="text-3xl mb-1">${unlocked ? r.icon : '❓'}</span>
+          <span class="text-[10px] font-extrabold text-slate-600 truncate w-full text-center">ST.${r.id}</span>
+        `;
+        btn.onclick = () => {
+          playTapSound();
+          const detail = document.getElementById('collection-detail');
+          if (unlocked) {
+            detail.innerHTML = `
+              <div class="font-extrabold text-slate-800 text-sm">${r.icon} ${r.name}（ステージ ${r.id}）</div>
+              <div class="text-xs font-bold text-slate-500 mt-0.5">${r.desc}</div>
+            `;
+          } else {
+            detail.innerHTML = `<div class="text-xs font-bold text-slate-500">ステージ ${r.id} を クリアすると ゲットできるよ！</div>`;
+          }
+        };
+        grid.appendChild(btn);
+      });
+
+      document.getElementById('modal-collection').classList.remove('hidden');
+    }
+
+    function closeCollectionModal() {
+      document.getElementById('modal-collection').classList.add('hidden');
+    }
+
+    function openSettingsModal() {
+      playTapSound();
+      cancelReset();
+      updateSoundButtons();
+      document.getElementById('modal-settings').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('modal-settings').classList.add('hidden');
+    }
+
+    function showResetConfirm() {
+      document.getElementById('reset-step-1').classList.add('hidden');
+      document.getElementById('reset-step-2').classList.remove('hidden');
+    }
+
+    function cancelReset() {
+      document.getElementById('reset-step-1').classList.remove('hidden');
+      document.getElementById('reset-step-2').classList.add('hidden');
+    }
+
+    function executeReset() {
+      saveData.clearedStages = {};
+      saveData.solvedIds = [];
+      persistSaveData();
+      closeSettingsModal();
+      renderHome();
+    }
+
+    // =========================================================================
+    // 10. PCキーボード対応 & 初期化
+    // =========================================================================
+    window.addEventListener('keydown', (e) => {
+      if (document.getElementById('screen-play').classList.contains('hidden')) return;
+      const q = stageQuestions[currentQIndex];
+      if (!q) return;
+
+      if (isAnswered && e.key === 'Enter') {
+        nextQuestion();
+        return;
+      }
+
+      if (q.answerType === 'number' && !isAnswered) {
+        if (e.key >= '0' && e.key <= '9') {
+          pressNum(e.key);
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          clearNum();
+        } else if (e.key === 'Enter') {
+          submitNumber();
+        }
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confetti-canvas');
+      if (!canvas.classList.contains('hidden')) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+    });
+
+    window.onload = () => {
+      loadSaveData();
+      renderHome();
+    };
+  </script>
+</body>
+</html>
